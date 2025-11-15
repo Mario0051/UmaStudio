@@ -14,6 +14,7 @@ namespace AssetStudio
             Games.Add(index++, new(GameType.Normal));
             Games.Add(index++, new(GameType.UnityCN));
             Games.Add(index++, new(GameType.UmamusumeJP));
+            Games.Add(index++, new(GameType.UmamusumeGlobal));
             Games.Add(index++, new Mhy(GameType.GI, GIMhyShiftRow, GIMhyKey, GIMhyMul, GIExpansionKey, GISBox, GIInitVector, GIInitSeed));
             Games.Add(index++, new Mr0k(GameType.GI_Pack, PackExpansionKey, blockKey: PackBlockKey));
             Games.Add(index++, new Mr0k(GameType.GI_CB1));
@@ -136,6 +137,7 @@ namespace AssetStudio
         Normal,
         UnityCN,
         UmamusumeJP,
+        UmamusumeGlobal,
         GI,
         GI_Pack,
         GI_CB1,
@@ -179,6 +181,8 @@ namespace AssetStudio
     {
         public static bool IsNormal(this GameType type) => type == GameType.Normal;
         public static bool IsUnityCN(this GameType type) => type == GameType.UnityCN;
+        public static bool IsUmamusumeJP(this GameType type) => type == GameType.UmamusumeJP;
+        public static bool IsUmamusumeGlobal(this GameType type) => type == GameType.UmamusumeGlobal;
         public static bool IsGI(this GameType type) => type == GameType.GI;
         public static bool IsGIPack(this GameType type) => type == GameType.GI_Pack;
         public static bool IsGICB1(this GameType type) => type == GameType.GI_CB1;
@@ -199,6 +203,11 @@ namespace AssetStudio
         public static bool IsLoveAndDeepspace(this GameType type) => type == GameType.LoveAndDeepspace;
         public static bool IsExAstris(this GameType type) => type == GameType.ExAstris;
         public static bool IsPerpetualNovelty(this GameType type) => type == GameType.PerpetualNovelty;
+        public static bool IsUmamusumeGroup(this GameType type) => type switch
+        {
+            GameType.UmamusumeJP or GameType.UmamusumeGlobal => true,
+            _ => false,
+        };
         public static bool IsGIGroup(this GameType type) => type switch
         {
             GameType.GI or GameType.GI_Pack or GameType.GI_CB1 or GameType.GI_CB2 or GameType.GI_CB3 or GameType.GI_CB3Pre => true,

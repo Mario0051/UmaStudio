@@ -5,7 +5,7 @@ using SQLitePCL;
 
 namespace AssetStudio
 {
-    public static class UmaJPDbReader
+    public static class UmaDbReader
     {
         private const int CipherIndex = 3;
 
@@ -34,7 +34,7 @@ namespace AssetStudio
                 var rcCfg = Sqlite3Mc.MC_Config(db, "cipher", CipherIndex);
                 if (rcCfg != Sqlite3Mc.SQLITE_OK)
                 {
-                    Logger.Verbose($"[UmaJP] sqlite3mc_config returned rc={rcCfg}; continuing");
+                    Logger.Verbose($"[UmaDbReader] sqlite3mc_config returned rc={rcCfg}; continuing");
                 }
 
                 var rcKey = Sqlite3Mc.Key_SetBytes(db, keyBytes);
@@ -74,8 +74,8 @@ namespace AssetStudio
                     throw new InvalidDataException("Meta DB opened but no bundle keys were found");
                 }
 
-                UmaJPManager.UpdateBundleKeys(bundleMap);
-                Logger.Info($"[UmaJP] Loaded {bundleMap.Count} bundle keys from meta");
+                UmaManager.UpdateBundleKeys(bundleMap);
+                Logger.Info($"[UmaDbReader] Loaded {bundleMap.Count} bundle keys from meta");
             }
             finally
             {

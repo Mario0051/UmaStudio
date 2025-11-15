@@ -6,39 +6,39 @@ using System.Linq;
 
 namespace AssetStudio
 {
-    public static class UmaJPManager
+    public static class UmaManager
     {
-        private const string HardcodedDbKeyHex = "9C2BAB97BCF8C0C4F1A9EA7881A213F6C9EBF9D8D4C6A8E43CE5A259BDE7E9FD";
-        private const string HardcodedAbKeyHexOrAscii = "532B4631E4A7B9473E7CFB"; 
+        private const string JPDbKeyHex = "9C2BAB97BCF8C0C4F1A9EA7881A213F6C9EBF9D8D4C6A8E43CE5A259BDE7E9FD";
+        private const string HardcodedAbKeyHexOrAscii = "532B4631E4A7B9473E7CFB";
+        private const string GlobalDbKeyHex = "A713A5C79DBC9497C0A88669";
 
         private static byte[] _abBaseKey = Array.Empty<byte>();
         private static string _dbKeyHex = string.Empty;
         private static readonly Dictionary<string, string> _bundleKeyMap = new(StringComparer.OrdinalIgnoreCase);
 
-        static UmaJPManager()
+        public static void SetActiveGame(GameType gameType)
         {
-            TryLoad();
-        }
-
-        public static void Reload() => TryLoad(force: true);
-
-        private static void TryLoad(bool force = false)
-        {
-            try
+            _bundleKeyMap.Clear();
+            switch (gameType)
             {
-                if (force)
-                {
-                    _bundleKeyMap.Clear();
-                }
-
-                _abBaseKey = ParseHexOrAscii(HardcodedAbKeyHexOrAscii);
-                _dbKeyHex = HardcodedDbKeyHex;
-            }
-            catch (Exception e)
-            {
-                Logger.Error("[UmaJP] Failed to initialize built-in keys", e);
-                _abBaseKey = Array.Empty<byte>();
-                _dbKeyHex = string.Empty;
+                case GameType.UmamusumeJP:
+                    _abBaseKey = ParseHexOrAscii(HardcodedAbKeyHexOrAscii);
+                    _dbKeyHex = JPDbKeyHex;
+                    Logger.Info($"[UmaManager] Set active game to UmamusumeJP. DB key and AB key loaded.");
+                    break;
+                case GameType.UmamusumeGlobal:
+                    _abBaseKey = ParseHexOrAscii(HardcodedAbKeyHexOrAscii);
+                    _dbKeyHex = GlobalDbKeyHex;
+                    Logger.Info($"[UmaManager] Set active game to UmamusumeGlobal. DB key and AB key loaded.");
+                    break;
+                default:
+                    _abBaseKey = Array.Empty<byte>();
+                    _dbKeyHex = string.Empty;
+                    if (gameType.IsUmamusumeGroup())
+                    {
+                        Logger.Warning($"[UmaManager] Unhandled Umamusume game type: {gameType}. Keys not loaded.");
+                    }
+                    break;
             }
         }
 
@@ -85,19 +85,19 @@ namespace AssetStudio
                 }
             }
 
-            Logger.Info($"[UmaJP] Resolving bundle key for '{bundlePathOrName}' via [{string.Join(", ", candidates.Distinct(StringComparer.OrdinalIgnoreCase))}]");
+            Logger.Info($"[UmaManager] Resolving bundle key for '{bundlePathOrName}' via [{string.Join(", ", candidates.Distinct(StringComparer.OrdinalIgnoreCase))}]");
 
             foreach (var candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
             {
                 if (_bundleKeyMap.TryGetValue(candidate, out var keyStr) && TryParseLong(keyStr, out var keyNum))
                 {
                     xorpad = DerivePad(_abBaseKey, keyNum);
-                    Logger.Info($"[UmaJP] Matched bundle key using '{candidate}'");
+                    Logger.Info($"[UmaManager] Matched bundle key using '{candidate}'");
                     return true;
                 }
             }
 
-            Logger.Info($"[UmaJP] Bundle key not found for '{bundlePathOrName}'");
+            Logger.Info($"[UmaManager] Bundle key not found for '{bundlePathOrName}'");
             return false;
         }
 

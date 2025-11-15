@@ -90,7 +90,7 @@ namespace AssetStudio.GUI
             InitializeProgressBar();
             InitializeLogger();
             InitalizeOptions();
-            InjectUmaJPMetaMenu();
+            InjectUmaMetaMenu();
             TryAutoLoadUmaMetaFromSettings();
             FMODinit();
         }
@@ -161,6 +161,7 @@ namespace AssetStudio.GUI
             specifyGame.SelectedIndex = Properties.Settings.Default.selectedGame;
             specifyGame.SelectedIndexChanged += new EventHandler(specifyGame_SelectedIndexChanged);
             Studio.Game = GameManager.GetGame(Properties.Settings.Default.selectedGame);
+            UmaManager.SetActiveGame(Studio.Game.Type);
             TypeFlags.SetTypes(JsonConvert.DeserializeObject<Dictionary<ClassIDType, (bool, bool)>>(Properties.Settings.Default.types));
             Logger.Info($"Target Game type is {Studio.Game.Type}");
 
@@ -184,7 +185,7 @@ namespace AssetStudio.GUI
             }
         }
 
-        private void InjectUmaJPMetaMenu()
+        private void InjectUmaMetaMenu()
         {
             try
             {
@@ -216,7 +217,7 @@ namespace AssetStudio.GUI
                     var loadMetaItem = new ToolStripMenuItem("Load Meta file")
                     {
                         Name = "loadMetaFileUmaJpToolStripMenuItem",
-                        ToolTipText = "UmamusumeJP: select encrypted 'meta' database to populate bundle keys"
+                        ToolTipText = "Umamusume: select encrypted 'meta' database to populate bundle keys"
                     };
                     loadMetaItem.Click += LoadMetaFileUmaJp_Click;
                     miscToolStripMenuItem.DropDownItems.Insert(sepIndex + 1, loadMetaItem);
@@ -229,7 +230,7 @@ namespace AssetStudio.GUI
                     var encryptItem = new ToolStripMenuItem("Encrypt bundle file")
                     {
                         Name = "encryptBundleUmaJpToolStripMenuItem",
-                        ToolTipText = "UmamusumeJP: encrypt decrypted bundle files using loaded keys"
+                        ToolTipText = "Umamusume: encrypt decrypted bundle files using loaded keys"
                     };
                     encryptItem.Click += EncryptBundleUmaJp_Click;
                     miscToolStripMenuItem.DropDownItems.Insert(encryptInsertIndex, encryptItem);
@@ -240,7 +241,7 @@ namespace AssetStudio.GUI
                     var exportBundleItem = new ToolStripMenuItem("Export decrypted bundles")
                     {
                         Name = "exportDecryptedBundleUmaJpToolStripMenuItem",
-                        ToolTipText = "Decrypt and export the currently loaded UmamusumeJP bundles"
+                        ToolTipText = "Decrypt and export the currently loaded Umamusume bundles"
                     };
                     exportBundleItem.Click += ExportDecryptedBundleUmaJp_Click;
 
@@ -262,22 +263,22 @@ namespace AssetStudio.GUI
 
         private void LoadMetaFileUmaJp_Click(object sender, EventArgs e)
         {
-            if (Studio.Game.Type != AssetStudio.GameType.UmamusumeJP)
+            if (!Studio.Game.Type.IsUmamusumeGroup())
             {
-                MessageBox.Show(this, "This action is only applicable when Game is set to UmamusumeJP.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "This action is only applicable when Game is set to Umamusume or UmamusumeGlobal.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            var dbKeyHex = AssetStudio.UmaJPManager.GetDbKeyHex();
+            var dbKeyHex = AssetStudio.UmaManager.GetDbKeyHex();
             if (string.IsNullOrEmpty(dbKeyHex))
             {
-                MessageBox.Show(this, "Built-in UmamusumeJP database key is unavailable. Please rebuild AssetStudio with valid keys.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, $"Built-in {Studio.Game.Name} database key is unavailable. Please rebuild AssetStudio with valid keys.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             using (var ofd = new OpenFileDialog())
             {
-                ofd.Title = "Select UmamusumeJP encrypted meta database";
+                ofd.Title = "Select Umamusume encrypted meta database";
                 ofd.Filter = "All files|*.*";
                 ofd.CheckFileExists = true;
                 ofd.Multiselect = false;
@@ -285,14 +286,14 @@ namespace AssetStudio.GUI
                 {
                     try
                     {
-                        AssetStudio.UmaJPDbReader.LoadMetaAndPopulate(ofd.FileName, dbKeyHex);
+                        AssetStudio.UmaDbReader.LoadMetaAndPopulate(ofd.FileName, dbKeyHex);
                         Properties.Settings.Default.umaJpMetaPath = ofd.FileName;
                         Properties.Settings.Default.Save();
-                        MessageBox.Show(this, "Meta loaded and bundle keys populated.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show(this, "Meta loaded and bundle keys populated.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(this, $"Failed to load meta: {ex.Message}", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(this, $"Failed to load meta: {ex.Message}", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             }
@@ -300,21 +301,21 @@ namespace AssetStudio.GUI
 
         private void ExportDecryptedBundleUmaJp_Click(object sender, EventArgs e)
         {
-            if (Studio.Game.Type != AssetStudio.GameType.UmamusumeJP)
+            if (!Studio.Game.Type.IsUmamusumeGroup())
             {
-                MessageBox.Show(this, "This action is only applicable when Game is set to UmamusumeJP.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "This action is only applicable when Game is set to Umamusume or UmamusumeGlobal.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            if (!AssetStudio.UmaJPManager.HasABKey())
+            if (!AssetStudio.UmaManager.HasABKey())
             {
-                MessageBox.Show(this, "Built-in UmamusumeJP bundle key is unavailable. Please rebuild AssetStudio with valid keys.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, $"Built-in {Studio.Game.Name} bundle key is unavailable. Please rebuild AssetStudio with valid keys.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (!AssetStudio.UmaJPManager.HasAnyBundleKeys())
+            if (!AssetStudio.UmaManager.HasAnyBundleKeys())
             {
-                MessageBox.Show(this, "No bundle keys loaded. Load the 'meta' database first.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, "No bundle keys loaded. Load the 'meta' database first.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -341,12 +342,12 @@ namespace AssetStudio.GUI
 
             if (bundlePaths.Count == 0)
             {
-                var message = "No UmamusumeJP bundles from the current session were detected for export.";
+                var message = "No Umamusume bundles from the current session were detected for export.";
                 if (missingSources.Count > 0)
                 {
                     message += Environment.NewLine + Environment.NewLine + "Missing files:" + Environment.NewLine + string.Join(Environment.NewLine, missingSources.Select(Path.GetFileName));
                 }
-                MessageBox.Show(this, message, "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, message, "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -369,7 +370,7 @@ namespace AssetStudio.GUI
             {
                 try
                 {
-                    if (!AssetStudio.UmaJPManager.TryGetXorPadFor(srcPath, out var pad) && !AssetStudio.UmaJPManager.TryGetXorPadFor(Path.GetFileName(srcPath), out pad))
+                    if (!AssetStudio.UmaManager.TryGetXorPadFor(srcPath, out var pad) && !AssetStudio.UmaManager.TryGetXorPadFor(Path.GetFileName(srcPath), out pad))
                     {
                         keyFailures.Add(Path.GetFileName(srcPath));
                         continue;
@@ -378,13 +379,13 @@ namespace AssetStudio.GUI
                     var outputName = Path.GetFileName(srcPath);
                     var destPath = Path.Combine(folderDialog.Folder, outputName);
                     ExportUmaBundleToFile(srcPath, destPath, pad);
-                    Logger.Info($"[UmaJP] Exported decrypted bundle to '{destPath}'");
+                    Logger.Info($"[Uma] Exported decrypted bundle to '{destPath}'");
                     success++;
                 }
                 catch (Exception ex)
                 {
                     exportFailures.Add($"{Path.GetFileName(srcPath)} ({ex.Message})");
-                    Logger.Warning($"[UmaJP] Failed to export decrypted bundle for '{srcPath}': {ex}");
+                    Logger.Warning($"[Uma] Failed to export decrypted bundle for '{srcPath}': {ex}");
                 }
             }
 
@@ -400,37 +401,37 @@ namespace AssetStudio.GUI
             if (exportFailures.Count > 0)
             {
                 summary += Environment.NewLine + Environment.NewLine + "Failed during export:" + Environment.NewLine + string.Join(Environment.NewLine, exportFailures);
-                MessageBox.Show(this, summary, "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, summary, "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             else
             {
-                MessageBox.Show(this, summary, "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, summary, "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
         private void EncryptBundleUmaJp_Click(object sender, EventArgs e)
         {
-            if (Studio.Game.Type != AssetStudio.GameType.UmamusumeJP)
+            if (!Studio.Game.Type.IsUmamusumeGroup())
             {
-                MessageBox.Show(this, "This action is only applicable when Game is set to UmamusumeJP.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "This action is only applicable when Game is set to Umamusume or UmamusumeGlobal.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            if (!AssetStudio.UmaJPManager.HasABKey())
+            if (!AssetStudio.UmaManager.HasABKey())
             {
-                MessageBox.Show(this, "Built-in UmamusumeJP bundle key is unavailable. Please rebuild AssetStudio with valid keys.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, $"Built-in {Studio.Game.Name} bundle key is unavailable. Please rebuild AssetStudio with valid keys.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (!AssetStudio.UmaJPManager.HasAnyBundleKeys())
+            if (!AssetStudio.UmaManager.HasAnyBundleKeys())
             {
-                MessageBox.Show(this, "No bundle keys loaded. Load the 'meta' database first.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, "No bundle keys loaded. Load the 'meta' database first.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             using var ofd = new OpenFileDialog
             {
-                Title = "Select decrypted UmamusumeJP bundle(s)",
+                Title = "Select decrypted Umamusume bundle(s)",
                 Filter = "All files|*.*",
                 CheckFileExists = true,
                 Multiselect = true
@@ -482,7 +483,7 @@ namespace AssetStudio.GUI
                     byte[] pad = null;
                     foreach (var candidate in candidates)
                     {
-                        if (AssetStudio.UmaJPManager.TryGetXorPadFor(candidate, out pad))
+                        if (AssetStudio.UmaManager.TryGetXorPadFor(candidate, out pad))
                         {
                             break;
                         }
@@ -502,13 +503,13 @@ namespace AssetStudio.GUI
                     destPath = EnsureUniqueFilePath(destPath);
 
                     ExportUmaBundleToFile(srcPath, destPath, pad);
-                    Logger.Info($"[UmaJP] Encrypted bundle '{srcPath}' to '{destPath}'");
+                    Logger.Info($"[Uma] Encrypted bundle '{srcPath}' to '{destPath}'");
                     success++;
                 }
                 catch (Exception ex)
                 {
                     exportFailures.Add($"{Path.GetFileName(srcPath)} ({ex.Message})");
-                    Logger.Warning($"[UmaJP] Failed to encrypt bundle '{srcPath}': {ex}");
+                    Logger.Warning($"[Uma] Failed to encrypt bundle '{srcPath}': {ex}");
                 }
             }
 
@@ -524,11 +525,11 @@ namespace AssetStudio.GUI
             if (exportFailures.Count > 0)
             {
                 summary += Environment.NewLine + Environment.NewLine + "Failed during export:" + Environment.NewLine + string.Join(Environment.NewLine, exportFailures);
-                MessageBox.Show(this, summary, "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, summary, "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             else
             {
-                MessageBox.Show(this, summary, "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, summary, "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -588,12 +589,12 @@ namespace AssetStudio.GUI
 
         private void TryAutoLoadUmaMetaFromSettings()
         {
-            if (Studio.Game.Type != AssetStudio.GameType.UmamusumeJP)
+            if (!Studio.Game.Type.IsUmamusumeGroup())
             {
                 return;
             }
 
-            if (AssetStudio.UmaJPManager.HasAnyBundleKeys())
+            if (AssetStudio.UmaManager.HasAnyBundleKeys())
             {
                 return;
             }
@@ -606,27 +607,27 @@ namespace AssetStudio.GUI
 
             if (!File.Exists(storedPath))
             {
-                Logger.Warning($"Stored UmamusumeJP meta path '{storedPath}' was not found. Clearing saved reference.");
+                Logger.Warning($"Stored Umamusume meta path '{storedPath}' was not found. Clearing saved reference.");
                 Properties.Settings.Default.umaJpMetaPath = string.Empty;
                 Properties.Settings.Default.Save();
                 return;
             }
 
-            var dbKeyHex = AssetStudio.UmaJPManager.GetDbKeyHex();
+            var dbKeyHex = AssetStudio.UmaManager.GetDbKeyHex();
             if (string.IsNullOrEmpty(dbKeyHex))
             {
-                Logger.Warning("Remembered UmamusumeJP meta path is available but database key is missing. Skipping auto-load.");
+                Logger.Warning("Remembered Umamusume meta path is available but database key is missing. Skipping auto-load.");
                 return;
             }
 
             try
             {
-                AssetStudio.UmaJPDbReader.LoadMetaAndPopulate(storedPath, dbKeyHex);
-                Logger.Info($"Automatically loaded UmamusumeJP meta from '{storedPath}'.");
+                AssetStudio.UmaDbReader.LoadMetaAndPopulate(storedPath, dbKeyHex);
+                Logger.Info($"Automatically loaded Umamusume meta from '{storedPath}'.");
             }
             catch (Exception ex)
             {
-                Logger.Warning($"Failed to auto-load UmamusumeJP meta from '{storedPath}': {ex.Message}");
+                Logger.Warning($"Failed to auto-load Umamusume meta from '{storedPath}': {ex.Message}");
             }
         }
         private void MainForm_DragEnter(object sender, DragEventArgs e)
@@ -651,16 +652,16 @@ namespace AssetStudio.GUI
             ResetForm();
             assetsManager.SpecifyUnityVersion = specifyUnityVersion.Text;
             assetsManager.Game = Studio.Game;
-            if (Studio.Game.Type == AssetStudio.GameType.UmamusumeJP)
+            if (Studio.Game.Type.IsUmamusumeGroup())
             {
-                if (!AssetStudio.UmaJPManager.HasABKey())
+                if (!AssetStudio.UmaManager.HasABKey())
                 {
-                    MessageBox.Show(this, "Built-in UmamusumeJP bundle key is unavailable. Please rebuild AssetStudio with valid keys.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(this, $"Built-in {Studio.Game.Name} bundle key is unavailable. Please rebuild AssetStudio with valid keys.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
-                if (!AssetStudio.UmaJPManager.HasAnyBundleKeys())
+                if (!AssetStudio.UmaManager.HasAnyBundleKeys())
                 {
-                    MessageBox.Show(this, "No bundle keys loaded. Use Misc > Load Meta file to decrypt and load keys from 'meta'.", "UmamusumeJP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(this, "No bundle keys loaded. Use Misc > Load Meta file to decrypt and load keys from 'meta'.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
             }
@@ -2597,6 +2598,9 @@ namespace AssetStudio.GUI
             ResetForm();
 
             Studio.Game = GameManager.GetGame(Properties.Settings.Default.selectedGame);
+
+            UmaManager.SetActiveGame(Studio.Game.Type);
+
             Logger.Info($"Target Game is {Studio.Game.Name}");
 
             if (Studio.Game.Type.IsUnityCN())
@@ -2607,7 +2611,7 @@ namespace AssetStudio.GUI
             assetsManager.SpecifyUnityVersion = specifyUnityVersion.Text;
             assetsManager.Game = Studio.Game;
 
-            if (Studio.Game.Type == AssetStudio.GameType.UmamusumeJP)
+            if (Studio.Game.Type.IsUmamusumeGroup())
             {
                 TryAutoLoadUmaMetaFromSettings();
             }

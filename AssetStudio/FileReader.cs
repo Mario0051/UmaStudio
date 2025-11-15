@@ -169,7 +169,8 @@ namespace AssetStudio
                 switch (game.Type)
                 {
                     case GameType.UmamusumeJP:
-                        reader = DecryptUmamusumeJP(reader);
+                    case GameType.UmamusumeGlobal:
+                        reader = DecryptUmamusume(reader);
                         break;
                     case GameType.GI_Pack:
                         reader = DecryptPack(reader, game);
@@ -257,7 +258,7 @@ namespace AssetStudio
             return reader;
         }
 
-        private static FileReader DecryptUmamusumeJP(FileReader reader)
+        private static FileReader DecryptUmamusume(FileReader reader)
         {
             try
             {
@@ -266,20 +267,20 @@ namespace AssetStudio
                     return reader;
                 }
 
-                if (UmaJPManager.TryGetXorPadFor(reader.FileName, out var pad) || UmaJPManager.TryGetXorPadFor(reader.FullPath, out pad))
+                if (UmaManager.TryGetXorPadFor(reader.FileName, out var pad) || UmaManager.TryGetXorPadFor(reader.FullPath, out pad))
                 {
-                    Logger.Verbose($"[UmaJP] Applying XOR stream to {reader.FileName} with pad length {pad.Length} from offset 256");
+                    Logger.Verbose($"[Uma] Applying XOR stream to {reader.FileName} with pad length {pad.Length} from offset 256");
                     var xorStream = new XORAfterOffsetStream(reader.BaseStream, 256, pad);
                     return new FileReader(reader.FullPath, xorStream, leaveOpen: false);
                 }
                 else
                 {
-                    Logger.Verbose($"[UmaJP] No per-bundle key found for {reader.FileName}, loading as-is");
+                    Logger.Verbose($"[Uma] No per-bundle key found for {reader.FileName}, loading as-is");
                 }
             }
             catch (Exception e)
             {
-                Logger.Error($"[UmaJP] Failed to apply XOR decrypt for {reader.FileName}", e);
+                Logger.Error($"[Uma] Failed to apply XOR decrypt for {reader.FileName}", e);
             }
             return reader;
         }

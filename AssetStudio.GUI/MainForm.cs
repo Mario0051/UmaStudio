@@ -265,7 +265,7 @@ namespace AssetStudio.GUI
         {
             if (!Studio.Game.Type.IsUmamusumeGroup())
             {
-                MessageBox.Show(this, "This action is only applicable when Game is set to Umamusume or UmamusumeGlobal.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "This action is only applicable when Game is set to UmamusumeJP or UmamusumeGlobal.", "Umamusume", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
